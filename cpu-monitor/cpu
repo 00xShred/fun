@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+
+declare curr=()
+declare prev=()
+
+# copy the data from the curr array to the prev array
+copy-data() {
+    prev=()
+
+    local key val
+    for key in "${!curr[@]}"; do
+        val=${curr[$key]}
+        prev[$key]=$val
+    done
+}
+
+# read cpu usage + calculations
+read-proc() {
+    local key user nice system idle iowait irq softirq steal guest guest_nice
+
+    local busy val num
+
+    while read -r key user nice system idle iowait \
+        irq softirq steal guest guest_nice; do
+        # filter everything but the cores
+        if [[ $key != cpu* ]]; then
+            continue
+        elif [[ $key == 'cpu' ]]; then
+            continue
+        fi
+        num=${key#cpu}
+
+        busy=$((user + nice + system + irq + softirq + steal + guest + guest_nice))
+        idle=$((idle + iowait))
+
+        val="$busy $idle"
+
+        curr[$num]=$val
+    done </proc/stat
+}
+
+# print pacman style progress bar
+print-bar() {
+    local key=$1
+    local busy1 idle1 busy2 idle2
+    read -r busy1 idle1 <<<"${prev[$key]}"
+    read -r busy2 idle2 <<<"${curr[$key]}"
+
+    local busy=$((busy2 - busy1))
+    local idle=$((idle2 - idle1))
+    local total=$((busy + idle))
+
+    local usage=$((1000 * busy / total))
+
+    local int=$((usage / 10))
+    local frac=$((usage % 10))
+    local perc=$int.$frac
+
+    local bar_width=$(($(tput cols) - 16))
+    ((bar_width < 5)) && bar_width=5
+    local filled=$((int * bar_width / 100))
+
+    local reset=$'\e[0m'
+    local dim=$'\e[2m'
+    local color
+    if ((int < 30)); then
+        color=$'\e[32m'
+    elif ((int < 70)); then
+        color=$'\e[33m'
+    else
+        color=$'\e[31m'
+    fi
+
+    local bar=''
+    local i
+    if ((filled == 0)); then
+        bar="${color}ᗧ${reset}"
+        for ((i = 0; i < bar_width - 1; i++)); do bar+="${dim}·${reset}"; done
+    else
+        for ((i = 0; i < filled - 1; i++)); do bar+="${color}─${reset}"; done
+        bar+="${color}ᗧ${reset}"
+        for ((i = 0; i < bar_width - filled; i++)); do bar+="${dim}·${reset}"; done
+    fi
+
+    printf '%-6s [%s] %s%5s%%%s\n' "$key" "$bar" "$color" "$perc" "$reset"
+}
+
+visualize-data() {
+    local now
+    printf -v now '%(%Y-%m-%d %H:%M)T'
+    local bold=$'\e[1m'
+    local cyan=$'\e[36m'
+    local reset=$'\e[0m'
+    echo -n "${bold}${cyan}CPU usage on $HOSTNAME - $now${reset}"
+    echo
+    echo
+
+    echo
+
+    local key
+    for key in "${!curr[@]}"; do
+        [[ $key == all ]] && continue
+        print-bar "$key"
+    done
+}
+
+cleanup() {
+    printf '\e[?1049l' # disable the alternate cursor
+    printf '\e[?25h'   # make cursor visible
+}
+
+main() {
+
+    read-proc
+    sleep 1
+
+    trap cleanup EXIT
+
+    printf '\e[?1049h' # enable alternate buffer
+    printf '\e[?25l'   # hide the cursor
+    printf '\e[H'      # move the cursor home
+
+    while true; do
+        copy-data
+        read-proc
+
+        s=${ visualize-data;}
+
+        printf '\e[2J' # clear the screen
+        printf '\e[H'  # move the cursor home
+
+        echo -n "$s"
+
+        sleep 1
+    done
+}
+
+main
