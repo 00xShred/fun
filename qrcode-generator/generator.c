@@ -1,11 +1,11 @@
 #include <stdbool.h>
 #include <stdint.h>
-#include <qrcodegen.h>
+#include "lib/qrcodegen.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <TinyPngOut.h>
+#include "lib/TinyPngOut.h"
 
 #define SCALE 10
 #define QR_MAX_INPUT_LEN 2953

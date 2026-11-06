@@ -7,12 +7,12 @@ A command-line QR code generator written in C. Reads text from stdin and writes 
 - [nayuki/QR-Code-generator](https://github.com/nayuki/QR-Code-generator) — `qrcodegen.c` / `qrcodegen.h`
 - [nayuki/Tiny-PNG-Output](https://github.com/nayuki/Tiny-PNG-Output) — `TinyPngOut.c` / `TinyPngOut.h`
 
-Both libraries are vendored in the directory.
+Both libraries are vendored in `lib/`.
 
 ## Build
 
 ```sh
-gcc -o generator generator.c qrcodegen.c TinyPngOut.c
+gcc -o generator generator.c lib/qrcodegen.c lib/TinyPngOut.c
 ```
 
 ## Usage
