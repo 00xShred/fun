@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -36,9 +37,14 @@ func save(link string, content []byte) {
 
 }
 
-var visited = map[string]bool{}
+var (
+	visited = map[string]bool{}
+	mu      sync.Mutex
+	wg      sync.WaitGroup
+)
 
 func crawl(link string) {
+	defer wg.Done()
 	u, err := url.Parse(link)
 	if err != nil {
 		log.Fatal(err)
@@ -51,10 +57,13 @@ func crawl(link string) {
 	}
 
 	key := u.Host + u.Path
+	mu.Lock()
 	if visited[key] {
+		mu.Unlock()
 		return
 	}
 	visited[key] = true
+	mu.Unlock()
 
 	client := &http.Client{}
 
@@ -85,7 +94,8 @@ func crawl(link string) {
 				if a.Key == "href" {
 					ref, err := url.Parse(a.Val)
 					if err == nil && !ref.IsAbs() && !strings.HasPrefix(a.Val, "#") {
-						crawl(u.ResolveReference(ref).String())
+						wg.Add(1)
+						go crawl(u.ResolveReference(ref).String())
 					}
 					break
 				}
@@ -100,5 +110,7 @@ func main() {
 		log.Fatal("usage: wgo <link>")
 	}
 	link := os.Args[1]
-	crawl(link)
+	wg.Add(1)
+	go crawl(link)
+	wg.Wait()
 }
