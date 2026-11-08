@@ -15,3 +15,4 @@ Small programming projects made for practice and fun
 - [[double-pendulum]]: a raylib double pendulum simulation with a fading trail.
 - [[fibonacci]]: an animated Fibonacci spiral visualizer built with raylib.
 - [[wgot]]: a Go web crawler that recursively downloads a site into local folders.
+- [[neural-network]]: a from-scratch 2-layer neural network in C (SGD/Adam, multiple activations, losses, and datasets).

@@ -1,0 +1,14 @@
+# Build artifacts
+*.o
+nn
+
+# Saved models
+*.bin
+
+# Debug / dumps
+vgcore.*
+core*
+*.dSYM/
+
+# Config / editor
+.clang-format
